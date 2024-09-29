@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"crypto/rand"
-	"errors"
+	"encoding/binary"
+	"go-network-stream-large-file/sender"
 	"io"
 	"log"
 	"net"
@@ -17,60 +17,21 @@ func (fs *FileServer) start() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer socket.Close()
 
 	for {
 		conn, err := socket.Accept()
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
-		fs.readLoop(conn)
+		go fs.readLoop(conn)
 	}
-}
-
-func (fs *FileServer) readLoop(conn net.Conn) {
-	buf := new(bytes.Buffer)
-	for {
-		n, err := io.CopyN(buf, conn, 4000)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if errors.Is(err, io.EOF) {
-			log.Println("Done reading file")
-			break
-		}
-
-		log.Println(buf.Bytes())
-		log.Printf("received %d bytes over the network", n)
-	}
-}
-
-func sendFile(size int64) error {
-	file := make([]byte, size)
-	_, err := io.ReadFull(rand.Reader, file)
-	if err != nil {
-		return err
-	}
-
-	conn, err := net.Dial("tcp", ":3000")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	n, err := io.CopyN(conn, bytes.NewReader(file), size)
-	if err != nil {
-		return err
-	}
-
-	// log.Print(file)
-	log.Printf("sent %d bytes over connection", n)
-
-	return nil
 }
 
 func main() {
 	go func() {
 		time.Sleep(4 * time.Second)
-		err := sendFile(4000)
+		err := sender.SendFile(100)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -79,4 +40,25 @@ func main() {
 
 	server := &FileServer{}
 	server.start()
+}
+
+func (fs *FileServer) readLoop(conn net.Conn) {
+	buf := new(bytes.Buffer)
+
+	var size int64
+	// first we are reading our data actual size from connection
+	err := binary.Read(conn, binary.LittleEndian, &size)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		n, err := io.CopyN(buf, conn, size)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println(buf.Bytes())
+		log.Printf("received %d bytes over the network", n)
+	}
 }
