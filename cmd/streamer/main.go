@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"go-network-stream-large-file/sender"
 	"io"
@@ -30,7 +31,8 @@ func (fs *FileServer) start() {
 
 func main() {
 	go func() {
-		time.Sleep(4 * time.Second)
+		// schedule us please
+		time.Sleep(1 * time.Second)
 		err := sender.SendFile(100)
 		if err != nil {
 			log.Fatal(err)
@@ -52,6 +54,13 @@ func (fs *FileServer) readLoop(conn net.Conn) {
 		log.Fatal(err)
 	}
 
+	// we are adding checksum of our data to check integrity on receiver
+	var checkSum [32]byte
+	err = binary.Read(conn, binary.LittleEndian, &checkSum)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for {
 		n, err := io.CopyN(buf, conn, size)
 		if err != nil {
@@ -60,5 +69,12 @@ func (fs *FileServer) readLoop(conn net.Conn) {
 
 		log.Println(buf.Bytes())
 		log.Printf("received %d bytes over the network", n)
+
+		sum256 := sha256.Sum256(buf.Bytes())
+		if !bytes.Equal(sum256[:], checkSum[:]) {
+			log.Fatal("checksum mismatch")
+		}
+
+		log.Println("checksum correct")
 	}
 }

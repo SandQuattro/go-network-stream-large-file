@@ -3,6 +3,7 @@ package sender
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/binary"
 	"io"
 	"log"
@@ -24,6 +25,13 @@ func SendFile(size int64) error {
 
 	// first we write our data size into connection, and then actual data
 	err = binary.Write(conn, binary.LittleEndian, size)
+	if err != nil {
+		return err
+	}
+
+	// we are adding checksum of our data to check integrity on receiver
+	sum256 := sha256.Sum256(file)
+	err = binary.Write(conn, binary.LittleEndian, sum256)
 	if err != nil {
 		return err
 	}
