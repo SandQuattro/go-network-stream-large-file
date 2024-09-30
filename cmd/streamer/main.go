@@ -33,7 +33,7 @@ func main() {
 	go func() {
 		// schedule us please
 		time.Sleep(1 * time.Second)
-		err := sender.SendFile(100)
+		err := sender.SendFile(1 << 20)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -67,7 +67,7 @@ func (fs *FileServer) readLoop(conn net.Conn) {
 			log.Fatal(err)
 		}
 
-		log.Println(buf.Bytes())
+		// log.Println(buf.Bytes())
 		log.Printf("received %d bytes over the network", n)
 
 		sum256 := sha256.Sum256(buf.Bytes())
