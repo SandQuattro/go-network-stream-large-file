@@ -23,5 +23,6 @@ Information about the number of bytes transferred is logged.
 
 # Future Plans
 
-- [ ] add udp data transfer
+- [x] add udp data transfer, not good for the file transfer! we can lose packets.
+It's good for video / audio data streaming, when you can lose some pixels or voice data etc...
 - [x] add transferred data checksum validation

@@ -5,19 +5,21 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
+	"go-network-stream-large-file/proto"
 	"io"
 	"log"
 	"net"
+	"time"
 )
 
-func SendFile(size int64) error {
+func SendFile(p int, size int64) error {
 	file := make([]byte, size)
 	_, err := io.ReadFull(rand.Reader, file)
 	if err != nil {
 		return err
 	}
 
-	conn, err := net.Dial("tcp", ":3000")
+	conn, err := net.Dial(proto.String(p), ":3000")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,10 +38,34 @@ func SendFile(size int64) error {
 		return err
 	}
 
-	// actual streaming our data to connection
-	n, err := io.CopyN(conn, bytes.NewReader(file), size)
-	if err != nil {
-		return err
+	var n int64
+	if p == proto.TCP {
+		// actual streaming our data to connection
+		n, err = io.CopyN(conn, bytes.NewReader(file), size)
+		if err != nil {
+			return err
+		}
+	} else if p == proto.UDP {
+		buf := new(bytes.Buffer)
+
+		buf.Write(file)
+
+		for buf.Len() > 0 {
+			chunkSize := proto.MaxPacketSize
+			if buf.Len() < proto.MaxPacketSize {
+				chunkSize = buf.Len()
+			}
+
+			chunk := buf.Next(chunkSize)
+			num, err := conn.Write(chunk)
+			if err != nil {
+				log.Panic(err)
+			}
+			n += int64(num)
+
+			// we can't do this soo fast!
+			time.Sleep(1 * time.Nanosecond)
+		}
 	}
 
 	// log.Print(file)
