@@ -57,7 +57,7 @@ func SendFile(p int, size int64) error {
 			}
 
 			chunk := buf.Next(chunkSize)
-			num, err := conn.Write(chunk)
+			num, err := writeData(conn, chunk)
 			if err != nil {
 				log.Panic(err)
 			}
@@ -72,4 +72,8 @@ func SendFile(p int, size int64) error {
 	log.Printf("sent %d bytes over connection", n)
 
 	return nil
+}
+
+func writeData(dst io.Writer, data []byte) (int, error) {
+	return dst.Write(data)
 }

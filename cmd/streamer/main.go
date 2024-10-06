@@ -46,9 +46,9 @@ func (fs *FileServer) start() {
 }
 
 func (fs *FileServer) TCPReader() {
-	socket, err := net.Listen(proto.String(fs.proto), ":3000")
-	if err != nil {
-		log.Fatal(err)
+	socket, e := net.Listen(proto.String(fs.proto), ":3000")
+	if e != nil {
+		log.Fatal(e)
 	}
 	defer socket.Close()
 
@@ -89,9 +89,10 @@ func (fs *FileServer) UDPReader() {
 
 	buf := new(bytes.Buffer)
 	b := make([]byte, proto.MaxPacketSize)
+	n := 0
 
 	for {
-		n, err := conn.Read(b)
+		n, err = conn.Read(b)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -103,7 +104,6 @@ func (fs *FileServer) UDPReader() {
 		if currentPos >= totalSize {
 			break
 		}
-
 	}
 
 	sum256 := sha256.Sum256(buf.Bytes()[:totalSize])
@@ -115,8 +115,9 @@ func (fs *FileServer) UDPReader() {
 
 }
 
-func (fs *FileServer) tcpReadLoop(conn net.Conn) {
+func (fs *FileServer) tcpReadLoop(conn io.Reader) {
 	buf := new(bytes.Buffer)
+	n := int64(0)
 
 	var size int64
 	// first we are reading our data actual size from connection
@@ -133,7 +134,7 @@ func (fs *FileServer) tcpReadLoop(conn net.Conn) {
 	}
 
 	for {
-		n, err := io.CopyN(buf, conn, size)
+		n, err = io.CopyN(buf, conn, size)
 		if err != nil {
 			log.Fatal(err)
 		}
