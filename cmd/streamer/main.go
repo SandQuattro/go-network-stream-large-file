@@ -46,18 +46,18 @@ func (fs *FileServer) start() {
 }
 
 func (fs *FileServer) TCPReader() {
-	socket, e := net.Listen(proto.String(fs.proto), ":3000")
+	conn, e := net.Listen(proto.String(fs.proto), ":3000")
 	if e != nil {
 		log.Fatal(e)
 	}
-	defer socket.Close()
+	defer conn.Close()
 
 	for {
-		conn, err := socket.Accept()
+		socket, err := conn.Accept()
 		if err != nil {
 			log.Panic(err)
 		}
-		go fs.tcpReadLoop(conn)
+		go fs.tcpReadLoop(socket)
 	}
 }
 
