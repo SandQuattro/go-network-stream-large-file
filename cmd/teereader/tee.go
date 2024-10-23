@@ -41,6 +41,7 @@ func main() {
 	// Create a hasher for calculating checksum
 	hasher := sha256.New()
 
+	// TeeReader is a real-time insights into data as it’s being read
 	// Create a TeeReader: reads from response body and writes to progress and hasher
 	teeReader := io.TeeReader(res.Body, io.MultiWriter(hasher, &progress{}))
 
